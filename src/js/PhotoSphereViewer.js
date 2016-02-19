@@ -100,6 +100,10 @@ function PhotoSphereViewer(options) {
     this.container.textContent = 'Canvas is not supported, update your browser!';
     throw new PSVError('Canvas is not supported.');
   }
+  else if (!PSVUtils.isWebGLSupported() && !THREE.CanvasRenderer) {
+    this.container.textContent = 'Missing THREE.CanvasRenderer.';
+    throw new PSVError('Missing THREE.CanvasRenderer. Get it from Three.js examples folder.');
+  }
 
   // init
   this.setAnimSpeed(this.config.anim_speed);
@@ -473,6 +477,26 @@ PhotoSphereViewer.prototype._createScene = function() {
     this.prop.start_timeout = setTimeout(this.startAutorotate.bind(this), this.config.time_anim);
   }
 
+  // TEST
+  this.composer = new THREE.EffectComposer(this.renderer);
+  this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+  /*var bokehPass = new THREE.BokehPass(this.scene, this.camera, {
+
+  });*/
+  var bokehPass = new THREE.ShaderPass(THREE.GodraysShader);
+  this.composer.addPass(bokehPass);
+  bokehPass.uniforms.tDiffuse.value = null;
+  bokehPass.uniforms.fX.value = 0.5;
+  bokehPass.uniforms.fY.value = 0.5;
+  bokehPass.uniforms.fExposure.value = 0.6;
+  bokehPass.uniforms.fDecay.value = 0.93;
+  bokehPass.uniforms.fDensity.value = 0.96;
+  bokehPass.uniforms.fWeight.value = 0.2;
+  bokehPass.uniforms.fClamp.value = 1.0;
+  bokehPass.needsSwap = true;
+  bokehPass.renderToScreen = true;
+  // TEST
+
   this._bindEvents();
   this.trigger('ready');
 };
@@ -553,7 +577,7 @@ PhotoSphereViewer.prototype.render = function() {
   );
 
   this.camera.lookAt(this.prop.direction);
-  this.renderer.render(this.scene, this.camera);
+  this.composer.render();
 
   this.trigger('render');
 };
@@ -563,7 +587,7 @@ PhotoSphereViewer.prototype.render = function() {
  * @return (void)
  */
 PhotoSphereViewer.prototype._autorotate = function() {
-  // Rotates the sphere && Returns to config.anim_lat
+
   this.rotate(
     this.prop.longitude + this.prop.anim_speed / this.prop.fps,
     this.prop.latitude - (this.prop.latitude - this.config.anim_lat) / 200

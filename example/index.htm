@@ -29,6 +29,16 @@
 <div id="photosphere"></div>
 
 <script src="../bower_components/three.js/three.min.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/renderers/CanvasRenderer.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/renderers/Projector.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/postprocessing/RenderPass.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/postprocessing/BokehPass.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/postprocessing/MaskPass.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/shaders/BokehShader.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/shaders/CopyShader.js"></script>
+<script src="../src/js/GodraysShader.js"></script>
 <script src="../dist/photo-sphere-viewer.js"></script>
 
 <script type="text/template" id="pin-content">
@@ -212,6 +222,10 @@
       });
     }
   });
+
+  function update() {
+    PSV.setPanorama('Equirectangular_projection_SW.jpg');
+  }
 </script>
 </body>
 </html>
