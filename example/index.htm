@@ -28,15 +28,14 @@
 
 <div id="photosphere"></div>
 
-<script src="../bower_components/three.js/three.min.js"></script>
+<script src="../bower_components/three.js/three.js"></script>
+<script src="../bower_components/D.js/lib/D.min.js"></script>
 <script src="../bower_components/threejs-examples/examples/js/renderers/CanvasRenderer.js"></script>
 <script src="../bower_components/threejs-examples/examples/js/renderers/Projector.js"></script>
 <script src="../bower_components/threejs-examples/examples/js/postprocessing/EffectComposer.js"></script>
 <script src="../bower_components/threejs-examples/examples/js/postprocessing/RenderPass.js"></script>
 <script src="../bower_components/threejs-examples/examples/js/postprocessing/ShaderPass.js"></script>
-<script src="../bower_components/threejs-examples/examples/js/postprocessing/BokehPass.js"></script>
 <script src="../bower_components/threejs-examples/examples/js/postprocessing/MaskPass.js"></script>
-<script src="../bower_components/threejs-examples/examples/js/shaders/BokehShader.js"></script>
 <script src="../bower_components/threejs-examples/examples/js/shaders/CopyShader.js"></script>
 <script src="../src/js/GodraysShader.js"></script>
 <script src="../dist/photo-sphere-viewer.js"></script>
@@ -107,6 +106,7 @@
     anim_speed: '-2rpm',
     default_fov: 70,
     time_anim: false,
+    kawoosh: 1500,
     visit: [[3.861, 0.034], [5.157,0.340], [0.479,0.654], [1.893,0.270]],
     markers: (function(){
       var a = [];

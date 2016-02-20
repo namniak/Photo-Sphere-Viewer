@@ -8,14 +8,29 @@ function PSVNavBar(psv) {
   this.config = this.psv.config.navbar;
   this.items = [];
 
+  // all buttons
   if (this.config === true) {
     this.config = PSVUtils.clone(PhotoSphereViewer.DEFAULTS.navbar);
   }
+  // space separated list
   else if (typeof this.config == 'string') {
     this.config = this.config.split(' ');
   }
+  // migration from object
   else if (!Array.isArray(this.config)) {
-    this.config = Object.keys(this.config);
+    console.warn('PhotoSphereViewer: hashmap form of "navbar" is deprecated, use an array instead.');
+
+    var config = this.config;
+    this.config = [];
+    for (var key in config) {
+      if (config[key]) {
+        this.config.push(key);
+      }
+    }
+
+    this.config.sort(function(a, b) {
+      return PhotoSphereViewer.DEFAULTS.navbar.indexOf(a) - PhotoSphereViewer.DEFAULTS.navbar.indexOf(b);
+    });
   }
 
   this.create();

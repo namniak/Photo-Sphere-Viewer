@@ -1,5 +1,6 @@
 /**
  * Godrays shader
+ * from http://demo.bkcore.com/threejs/webgl_tron_godrays.html
  */
 
 THREE.GodraysShader = {
@@ -14,17 +15,19 @@ THREE.GodraysShader = {
     fClamp: { type: "f", value: 1.0 }
   },
 
+  // @formatter:off
   vertexShader: [
     "varying vec2 vUv;",
 
-    "void main() {",
-
-      "vUv = vec2( uv.x, 1.0 - uv.y );",
+    "void main()",
+    "{",
+      "vUv = vec2( uv.x, uv.y );",
       "gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
-
     "}"
   ].join("\n"),
+  // @formatter:off
 
+  // @formatter:on
   fragmentShader: [
     "varying vec2 vUv;",
     "uniform sampler2D tDiffuse;",
@@ -63,5 +66,5 @@ THREE.GodraysShader = {
       "gl_FragColor = FragColor;",
     "}"
   ].join("\n")
-
+  // @formatter:on
 };

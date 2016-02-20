@@ -4,6 +4,21 @@
 var PSVUtils = {};
 
 /**
+ * Check if some Three.js components are loaded
+ * @param components (String...)
+ * @returns (boolean)
+ */
+PSVUtils.checkTHREE = function(/* components */) {
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    if (!(arguments[i] in THREE)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
  * Detects whether canvas is supported
  * @return (boolean) true if canvas is supported, false otherwise
  */
@@ -127,6 +142,28 @@ PSVUtils.getXMPValue = function(data, attr) {
 };
 
 /**
+ * Cross browser requestAnimationFrame
+ * https://gist.github.com/julianshapiro/9497513
+ */
+PSVUtils.requestAnimationFrame = function(callback) {
+  var timeLast = 0;
+
+  return (window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || function(callback) {
+      var timeCurrent = (new Date()).getTime(),
+        timeDelta;
+
+      /* Dynamically set delay on a per-tick basis to match 60fps. */
+      /* Technique by Erik Moller. MIT license: https://gist.github.com/paulirish/1579671 */
+      timeDelta = Math.max(0, 16 - (timeCurrent - timeLast));
+      timeLast = timeCurrent + timeDelta;
+
+      return setTimeout(function() {
+        callback(timeCurrent + timeDelta);
+      }, timeDelta);
+    }).call(window, callback);
+};
+
+/**
  * Detects whether fullscreen is enabled or not
  * @return (boolean) true if fullscreen is enabled, false otherwise
  */
@@ -187,6 +224,83 @@ PSVUtils.parsePosition = function(value) {
 };
 
 /**
+ * Utility for animations
+ * @param options (Object)
+ *    - properties[{end, start}]
+ *    - duration
+ *    - onTick(properties)
+ * @returns (D.promise)
+ */
+PSVUtils.animation = function(options) {
+  var defer = D();
+  var start = null;
+  var ease = PSVUtils.animation.easings[options.easing || 'linear'];
+
+  function run(timestamp) {
+    if (start === null) {
+      start = timestamp;
+    }
+
+    var progress = (timestamp - start) / options.duration;
+    var current = {};
+
+    if (progress < 1.0) {
+      progress = ease(progress);
+      for (var name in options.properties) {
+        current[name] = options.properties[name].start + (options.properties[name].end - options.properties[name].start) * progress;
+      }
+
+      options.onTick(current, progress);
+
+      PSVUtils.requestAnimationFrame( run);
+    }
+    else {
+      for (var name in options.properties) {
+        current[name] = options.properties[name].end;
+      }
+
+      options.onTick(current, 1.0);
+
+      defer.resolve();
+    }
+  }
+
+  PSVUtils.requestAnimationFrame(run);
+
+  return defer.promise;
+};
+
+// https://gist.github.com/gre/1650294
+PSVUtils.animation.easings = {
+  // no easing, no acceleration
+  linear: function (t) { return t },
+  // accelerating from zero velocity
+  easeInQuad: function (t) { return t*t },
+  // decelerating to zero velocity
+  easeOutQuad: function (t) { return t*(2-t) },
+  // acceleration until halfway, then deceleration
+  easeInOutQuad: function (t) { return t<.5 ? 2*t*t : -1+(4-2*t)*t },
+  // accelerating from zero velocity
+  easeInCubic: function (t) { return t*t*t },
+  // decelerating to zero velocity
+  easeOutCubic: function (t) { return (--t)*t*t+1 },
+  // acceleration until halfway, then deceleration
+  easeInOutCubic: function (t) { return t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1 },
+  // accelerating from zero velocity
+  easeInQuart: function (t) { return t*t*t*t },
+  // decelerating to zero velocity
+  easeOutQuart: function (t) { return 1-(--t)*t*t*t },
+  // acceleration until halfway, then deceleration
+  easeInOutQuart: function (t) { return t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t },
+  // accelerating from zero velocity
+  easeInQuint: function (t) { return t*t*t*t*t },
+  // decelerating to zero velocity
+  easeOutQuint: function (t) { return 1+(--t)*t*t*t*t },
+  // acceleration until halfway, then deceleration
+  easeInOutQuint: function (t) { return t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t }
+};
+
+/**
  * Merge the enumerable attributes of two objects.
  * Modified to replace arrays instead of merge.
  * @copyright Nicholas Fisher <nfisher110@gmail.com>"
@@ -210,6 +324,9 @@ PSVUtils.deepmerge = function(target, src) {
     });
   }
   else {
+    if (target && Array.isArray(target)) {
+      target = undefined;
+    }
     if (target && typeof target === 'object') {
       Object.keys(target).forEach(function(key) {
         dst[key] = target[key];
