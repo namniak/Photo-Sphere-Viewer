@@ -41,7 +41,7 @@ function PhotoSphereViewer(options) {
     throw new PSVError('tilt_up_max cannot be lower than tilt_down_max.');
   }
 
-  if (this.config.kawoosh && !PSVUtils.checkTHREE('EffectComposer', 'RenderPass', 'ShaderPass', 'MaskPass', 'CopyShader')) {
+  if (this.config.transition && this.config.transition.blur && !PSVUtils.checkTHREE('EffectComposer', 'RenderPass', 'ShaderPass', 'MaskPass', 'CopyShader')) {
     throw new PSVError('Missing Three.js components: EffectComposer, RenderPass, ShaderPass, MaskPass, CopyShader. Get them from threejs-examples package.');
   }
 
@@ -173,7 +173,11 @@ PhotoSphereViewer.DEFAULTS = {
   mousewheel: true,
   mousemove: true,
   click_event_on_marker: true,
-  kawoosh: false,
+  transition: {
+    duration: 1500,
+    loader: true,
+    blur: false
+  },
   loading_img: null,
   loading_txt: 'Loading...',
   size: null,
@@ -215,15 +219,13 @@ PhotoSphereViewer.prototype.destroy = function() {
   }
 
   if (this.mesh) {
-    if (this.mesh.material) {
-      if (this.mesh.material.geometry) {
-        this.mesh.material.geometry.dispose();
-      }
-      if (this.mesh.material.map) {
-        this.mesh.material.map.dispose();
-      }
-      this.mesh.material.dispose();
-    }
+    this.mesh.material.geometry.dispose();
+    this.mesh.material.geometry = null;
+    this.mesh.material.map.dispose();
+    this.mesh.material.map = null;
+    this.mesh.material.dispose();
+    this.mesh.material = null;
+    this.mesh.dispose();
   }
 
   // remove container
@@ -245,6 +247,7 @@ PhotoSphereViewer.prototype.destroy = function() {
   this.camera = null;
   this.mesh = null;
   this.raycaster = null;
+  this.passes = {};
   this.actions = {};
 };
 
@@ -388,7 +391,10 @@ PhotoSphereViewer.prototype._loadTexture = function(pano_data) {
     self.prop.size.image_width = pano_data.cropped_width;
     self.prop.size.image_height = pano_data.cropped_height;
 
-    defer.resolve(img);
+    var texture = new THREE.Texture(img);
+    texture.needsUpdate = true;
+
+    defer.resolve(texture);
   };
 
   var onprogress = function(e) {
@@ -417,7 +423,7 @@ PhotoSphereViewer.prototype._loadTexture = function(pano_data) {
  * @param img (Canvas) The sphere texture
  * @returns (D.promise)
  */
-PhotoSphereViewer.prototype._setTexture = function(img) {
+PhotoSphereViewer.prototype._setTexture = function(texture) {
   if (!this.scene) {
     this._createScene();
   }
@@ -426,8 +432,7 @@ PhotoSphereViewer.prototype._setTexture = function(img) {
     this.mesh.material.map.dispose();
   }
 
-  this.mesh.material.map = new THREE.Texture(img);
-  this.mesh.material.map.needsUpdate = true;
+  this.mesh.material.map = texture;
 
   this.loader.destroy();
   this.loader = null;
@@ -462,8 +467,10 @@ PhotoSphereViewer.prototype._createScene = function() {
 
   // The middle of the panorama is placed at longitude=0
   var geometry = new THREE.SphereGeometry(200, 32, 32, -PhotoSphereViewer.HalfPI);
+
   var material = new THREE.MeshBasicMaterial();
   material.side = THREE.DoubleSide;
+
   this.mesh = new THREE.Mesh(geometry, material);
   this.mesh.scale.x = -1;
 
@@ -499,7 +506,7 @@ PhotoSphereViewer.prototype._createScene = function() {
   }
 
   // Init shader renderer
-  if (this.config.kawoosh) {
+  if (this.config.transition && this.config.transition.blur) {
     this.renderer = new THREE.EffectComposer(this.renderer);
 
     this.passes.render = new THREE.RenderPass(this.scene, this.camera);
@@ -573,44 +580,37 @@ PhotoSphereViewer.prototype.handleEvent = function(e) {
  * Load a panorama file
  * Creates the scene in needed
  * @param path (String)
+ * @param transition (boolean)
  */
-PhotoSphereViewer.prototype.setPanorama = function(path, kawoosh) {
+PhotoSphereViewer.prototype.setPanorama = function(path, transition) {
   this.config.panorama = path;
 
   this.container.classList.add('loading');
 
   this.loader = new PSVLoader(this);
 
-  if (kawoosh === false || !this.config.kawoosh) {
+  if (!transition || !this.config.transition || !this.scene) {
     this._loadXMP()
       .then(this._loadTexture.bind(this))
       .then(this._setTexture.bind(this));
   }
   else {
-    // The kawoosh animation consists of four parallel methods
-    // start --> loadTexture() --| wait 1/4 of animation |--> blendTexture()
-    // start --> kawooshIn() --| wait loadTexture |--> kawooshOut()
-
     var self = this;
-    var start = Date.now();
 
-    var loadPromise = this._loadXMP()
-      .then(this._loadTexture.bind(this));
-
-    loadPromise
+    this._loadXMP()
+      .then(this._loadTexture.bind(this))
       .then(function(img) {
-        var elapsed = Date.now() - start;
-        setTimeout(
-          self._blendTexture.bind(self, img),
-          Math.max(0, self.config.kawoosh / 4 - elapsed)
-        );
-      });
-
-    this._kawooshIn()
-      .then(function() {
-        return loadPromise;
+        if (self.config.transition.blur) {
+          setTimeout(
+            self._blendTexture.bind(self, img),
+            self.config.transition.duration / 4
+          );
+          return self._transition();
+        }
+        else {
+          return self._blendTexture(img);
+        }
       })
-      .then(this._kawooshOut.bind(this))
       .then(function() {
         self.loader.destroy();
         self.loader = null;
@@ -618,103 +618,102 @@ PhotoSphereViewer.prototype.setPanorama = function(path, kawoosh) {
   }
 };
 
-PhotoSphereViewer.prototype._blendTexture = function(img) {
+PhotoSphereViewer.prototype._blendTexture = function(texture) {
   var geometry = new THREE.SphereGeometry(190, 32, 32, -PhotoSphereViewer.HalfPI);
+
   var material = new THREE.MeshBasicMaterial();
   material.side = THREE.DoubleSide;
-  var mesh = new THREE.Mesh(geometry, material);
-  mesh.scale.x = -1;
-
-  material.map = new THREE.Texture(img);
-  material.map.needsUpdate = true;
-
+  material.map = texture;
   material.transparent = true;
   material.opacity = 0;
 
+  var mesh = new THREE.Mesh(geometry, material);
+  mesh.scale.x = -1;
+
   this.scene.add(mesh);
+  this.render();
 
   var self = this;
 
-  PSVUtils.animation({
-    properties: {
-      opacity: { start: 0.0, end: 1.0 }
-    },
-    duration: this.config.kawoosh / 2,
-    easing: 'easeInOutQuad',
-    onTick: function(properties) {
-      material.opacity = properties.opacity;
-      self.render();
-    }
-  })
+  return PSVUtils.animation({
+      properties: {
+        opacity: { start: 0.0, end: 1.0 }
+      },
+      duration: this.config.transition.duration / 2,
+      easing: 'easeInOutQuad',
+      onTick: function(properties) {
+        material.opacity = properties.opacity;
+        self.render();
+      }
+    })
     .then(function() {
       self.mesh.material.map.dispose();
-      self.mesh.material.map = material.map;
-      self.scene.remove(material);
-      material.dispose();
+      self.mesh.material.map = texture;
+
+      self.scene.remove(mesh);
+
+      mesh.geometry.dispose();
+      mesh.geometry = null;
+      mesh.material.dispose();
+      mesh.material = null;
+      mesh.dispose();
 
       self.render();
+
+      return D.resolved();
     });
 };
 
-PhotoSphereViewer.prototype._kawooshIn = function() {
-  var defer = D();
+PhotoSphereViewer.prototype._transition = function() {
   var self = this;
 
   this.passes.copy.enabled = false;
   this.passes.blur.enabled = true;
   this.prop.original_zoom_lvl = this.prop.zoom_lvl;
 
-  PSVUtils.animation({
-    properties: {
-      fDensity: { start: 0.0, end: 1.0 },
-      opacity: { start: 1.0, end: 0.0 },
-      zoom: { start: this.prop.zoom_lvl, end: 100 }
-    },
-    duration: this.config.kawoosh / 2,
-    easing: 'easeOutCubic',
-    onTick: function(properties) {
-      self.passes.blur.uniforms.fDensity.value = properties.fDensity;
-      self.hud.container.style.opacity = properties.opacity;
-      self._setZoom(properties.zoom);
-      self.render();
-    }
-  })
+  return PSVUtils.animation({
+      properties: {
+        fDensity: { start: 0.0, end: 1.0 },
+        opacity: { start: 1.0, end: 0.0 },
+        zoom: { start: this.prop.zoom_lvl, end: 100 }
+      },
+      duration: this.config.transition.duration / 2,
+      easing: 'easeOutCubic',
+      onTick: function(properties) {
+        self.passes.blur.uniforms.fDensity.value = properties.fDensity;
+        self.hud.container.style.opacity = properties.opacity;
+
+        self._setZoom(properties.zoom);
+        self.render();
+      }
+    })
     .then(function() {
-      defer.resolve();
-    });
+      return PSVUtils.animation({
+        properties: {
+          fDensity: { start: 1.0, end: 0.0 },
+          opacity: { start: 0.0, end: 1.0 },
+          zoom: { start: 100, end: self.prop.original_zoom_lvl }
+        },
+        duration: self.config.transition.duration / 4,
+        easing: 'easeInCubic',
+        onTick: function(properties) {
+          self.passes.blur.uniforms.fDensity.value = properties.fDensity;
+          self.hud.container.style.opacity = properties.opacity;
 
-  return defer.promise;
-};
-
-PhotoSphereViewer.prototype._kawooshOut = function() {
-  var defer = D();
-  var self = this;
-
-  PSVUtils.animation({
-    properties: {
-      fDensity: { start: 1.0, end: 0.0 },
-      opacity: { start: 0.0, end: 1.0 },
-      zoom: { start: 100, end: this.prop.original_zoom_lvl }
-    },
-    duration: this.config.kawoosh / 4,
-    easing: 'easeInCubic',
-    onTick: function(properties) {
-      self.passes.blur.uniforms.fDensity.value = properties.fDensity;
-      self.hud.container.style.opacity = properties.opacity;
-      self._setZoom(properties.zoom);
-      self.render();
-    }
-  })
+          self._setZoom(properties.zoom);
+          self.render();
+        }
+      });
+    })
     .then(function() {
       self.passes.copy.enabled = true;
       self.passes.blur.enabled = false;
       delete self.prop.original_zoom_lvl;
 
       self.render();
-      defer.resolve();
-    });
 
-  return defer.promise;
+      return D.resolved();
+    });
 };
 
 /**
@@ -818,7 +817,7 @@ PhotoSphereViewer.prototype.resize = function(width, height) {
 
   if (this.renderer) {
     this.renderer.setSize(this.prop.size.width, this.prop.size.height);
-    if (this.config.kawoosh) { // the renderer is actually the composer
+    if (this.config.transition) { // the renderer is actually the composer
       this.renderer.renderer.setSize(this.prop.size.width, this.prop.size.height);
     }
     this.render();

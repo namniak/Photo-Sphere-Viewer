@@ -94,7 +94,11 @@
         className: 'custom-button',
         content: '★',
         onClick: function() {
-          alert('You clicked the custom action');
+          Object.keys(PSV.hud.markers).forEach(function(marker) {
+            PSV.removeMarker(marker);
+          });
+          PSV.setCaption('Bryce Canyon National Park <b>&copy; Jess Beauchemin</b>');
+          PSV.setPanorama('Bryce-Canyon-By-Jess-Beauchemin.jpg', true);
         }
       },
       'caption',
@@ -106,7 +110,11 @@
     anim_speed: '-2rpm',
     default_fov: 70,
     time_anim: false,
-    kawoosh: 1500,
+    transition: {
+      duration: 5000,
+      loader: true,
+      blur: true
+    },
     visit: [[3.861, 0.034], [5.157,0.340], [0.479,0.654], [1.893,0.270]],
     markers: (function(){
       var a = [];
@@ -222,10 +230,6 @@
       });
     }
   });
-
-  function update() {
-    PSV.setPanorama('Equirectangular_projection_SW.jpg');
-  }
 </script>
 </body>
 </html>

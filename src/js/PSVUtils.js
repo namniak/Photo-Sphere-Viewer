@@ -228,6 +228,7 @@ PSVUtils.parsePosition = function(value) {
  * @param options (Object)
  *    - properties[{end, start}]
  *    - duration
+ *    - easing
  *    - onTick(properties)
  * @returns (D.promise)
  */
@@ -245,14 +246,13 @@ PSVUtils.animation = function(options) {
     var current = {};
 
     if (progress < 1.0) {
-      progress = ease(progress);
       for (var name in options.properties) {
-        current[name] = options.properties[name].start + (options.properties[name].end - options.properties[name].start) * progress;
+        current[name] = options.properties[name].start + (options.properties[name].end - options.properties[name].start) * ease(progress);
       }
 
       options.onTick(current, progress);
 
-      PSVUtils.requestAnimationFrame( run);
+      PSVUtils.requestAnimationFrame(run);
     }
     else {
       for (var name in options.properties) {
