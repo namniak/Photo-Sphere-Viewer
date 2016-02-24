@@ -1,5 +1,5 @@
 {
-  "name": "Photo-Sphere-Viewer",
+  "name": "photo-sphere",
   "version": "3.1.0",
   "authors": [
     {
@@ -13,6 +13,7 @@
       "homepage": "http://www.strangeplanet.fr"
     }
   ],
+  "main": "./dist/photo-sphere-viewer.js",
   "description": "A JavaScript library to display Photo Sphere panoramas",
   "homepage": "http://mistic100.github.io/Photo-Sphere-Viewer",
   "devDependencies": {
