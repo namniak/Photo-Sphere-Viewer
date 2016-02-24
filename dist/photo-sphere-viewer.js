@@ -5,12 +5,15 @@
  * Licensed under MIT (http://opensource.org/licenses/MIT)
  */
 
+window.THREE = require('three');
+
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define(['three'], factory);
   }
   else {
-    root.PhotoSphereViewer = factory(root.THREE);
+    THREE = THREE || window.THREE
+    root.PhotoSphereViewer = factory(THREE);
   }
 }(this, function(THREE) {
 "use strict";
