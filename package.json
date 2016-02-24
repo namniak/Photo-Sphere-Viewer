@@ -16,6 +16,9 @@
   "main": "./dist/photo-sphere-viewer.js",
   "description": "A JavaScript library to display Photo Sphere panoramas",
   "homepage": "http://mistic100.github.io/Photo-Sphere-Viewer",
+  "dependencies": {
+    "three": "^0.74.0"
+  },
   "devDependencies": {
     "grunt-contrib-concat": "^0.5.0",
     "grunt-contrib-connect": "^0.11.2",
