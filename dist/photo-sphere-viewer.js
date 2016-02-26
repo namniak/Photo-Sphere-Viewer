@@ -437,6 +437,8 @@ PhotoSphereViewer.prototype._createScene = function(img) {
   this.scene.add(this.camera);
 
   var texture = new THREE.Texture(img);
+  texture.minFilter = THREE.LinearFilter
+  texture.generateMipmaps = false
   texture.needsUpdate = true;
 
   // The middle of the panorama is placed at longitude=0
