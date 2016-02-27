@@ -65,7 +65,7 @@ PSVNavBarZoomButton.prototype.create = function() {
   this.psv.on('zoom-updated', this);
 
   var self = this;
-  setTimeout(function() {
+  window.setTimeout(function() {
     self._moveZoomValue(self.psv.prop.zoom_lvl);
   }, 0);
 };

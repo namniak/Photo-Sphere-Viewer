@@ -1,11 +1,11 @@
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
-    define(['three'], factory);
+    define(['three', 'D.js'], factory);
   }
   else {
-    root.PhotoSphereViewer = factory(root.THREE);
+    root.PhotoSphereViewer = factory(root.THREE, root.D);
   }
-}(this, function(THREE) {
+}(this, function(THREE, D) {
 "use strict";
 
 @@js

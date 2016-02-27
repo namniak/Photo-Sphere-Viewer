@@ -1,15 +1,18 @@
 {
   "name": "Photo-Sphere-Viewer",
   "version": "3.1.0",
-  "authors": [{
-    "name": "Jérémy Heleine",
-    "email": "jeremy.heleine@gmail.com",
-    "homepage": "http://jeremyheleine.me"
-  },{
-    "name": "Damien \"Mistic\" Sorel",
-    "email": "contact@git.strangeplanet.fr",
-    "homepage": "http://www.strangeplanet.fr"
-  }],
+  "authors": [
+    {
+      "name": "Jérémy Heleine",
+      "email": "jeremy.heleine@gmail.com",
+      "homepage": "http://jeremyheleine.me"
+    },
+    {
+      "name": "Damien \"Mistic\" Sorel",
+      "email": "contact@git.strangeplanet.fr",
+      "homepage": "http://www.strangeplanet.fr"
+    }
+  ],
   "description": "A JavaScript library to display Photo Sphere panoramas",
   "homepage": "https://github.com/mistic100/Photo-Sphere-Viewer",
   "main": [
@@ -17,7 +20,9 @@
     "dist/photo-sphere-viewer.css"
   ],
   "dependencies": {
-    "three.js": ">= 0.0.67"
+    "three.js": ">= 0.0.67",
+    "D.js": "~0.7.3",
+    "requestanimationframe": "https://gist.githubusercontent.com/iangilman/5824967/raw/d77d262fd08b4829e725d28d831138ff0acf49ad/requestanimationframe.js"
   },
   "keywords": [
     "photosphere",
@@ -37,5 +42,8 @@
     "tests",
     "package.json",
     "Gruntfile.js"
-  ]
+  ],
+  "devDependencies": {
+    "threejs-examples": "master"
+  }
 }

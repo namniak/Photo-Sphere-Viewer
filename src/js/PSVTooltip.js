@@ -170,7 +170,7 @@ PSVTooltip.prototype.showTooltip = function(config) {
   // delay for correct transition between the two classes
   if (!isUpdate) {
     var self = this;
-    setTimeout(function() {
+    window.setTimeout(function() {
       t.classList.add('visible');
       self.psv.trigger('show-tooltip');
     }, this.config.delay);
@@ -187,7 +187,7 @@ PSVTooltip.prototype.hideTooltip = function() {
     this.psv.trigger('hide-tooltip');
 
     var self = this;
-    setTimeout(function() {
+    window.setTimeout(function() {
       self.container.style.top = '-1000px';
       self.container.style.left = '-1000px';
     }, this.config.delay);

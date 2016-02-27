@@ -4,6 +4,21 @@
 var PSVUtils = {};
 
 /**
+ * Check if some Three.js components are loaded
+ * @param components (String...)
+ * @returns (boolean)
+ */
+PSVUtils.checkTHREE = function(/* components */) {
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    if (!(arguments[i] in THREE)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
  * Detects whether canvas is supported
  * @return (boolean) true if canvas is supported, false otherwise
  */
@@ -187,6 +202,141 @@ PSVUtils.parsePosition = function(value) {
 };
 
 /**
+ * Utility for animations
+ * @param options (Object)
+ *    - properties ({name: {end: number, start: number}})
+ *    - duration (int)
+ *    - delay (int, optional)
+ *    - easing (string|function, optional)
+ *    - onTick (function(properties))
+ * @returns (D.promise) with an additional "cancel" method
+ */
+PSVUtils.animation = function(options) {
+  var defer = D();
+  var start = null;
+
+  if (!options.easing || typeof options.easing == 'string') {
+    options.easing = PSVUtils.animation.easings[options.easing || 'linear'];
+  }
+
+  function run(timestamp) {
+    // the animation has been cancelled
+    if (defer.promise.getStatus() === -1) {
+      return;
+    }
+
+    // first iteration
+    if (start === null) {
+      start = timestamp;
+    }
+
+    // compute progress
+    var progress = (timestamp - start) / options.duration;
+    var current = {};
+    var name;
+
+    if (progress < 1.0) {
+      // interpolate properties
+      for (name in options.properties) {
+        current[name] = options.properties[name].start + (options.properties[name].end - options.properties[name].start) * options.easing(progress);
+      }
+
+      options.onTick(current, progress);
+
+      window.requestAnimationFrame(run);
+    }
+    else {
+      // call onTick one last time with final values
+      for (name in options.properties) {
+        current[name] = options.properties[name].end;
+      }
+
+      options.onTick(current, 1.0);
+
+      defer.resolve();
+    }
+  }
+
+  if (options.delay !== undefined) {
+    window.setTimeout(function() {
+      window.requestAnimationFrame(run);
+    }, options.delay);
+  }
+  else {
+    window.requestAnimationFrame(run);
+  }
+
+  // add a "cancel" to the promise
+  var promise = defer.promise;
+  promise.cancel = defer.reject.bind(defer);
+  return promise;
+};
+
+/**
+ * Collection of easing functions
+ * https://gist.github.com/frederickk/6165768
+ */
+// @formatter:off
+// jscs:disable
+/* jshint ignore:start */
+PSVUtils.animation.easings = {
+  // no easing, no acceleration
+  linear: function(t) { return t; },
+
+  // accelerating from zero velocity
+  inQuad: function(t) { return t*t; },
+  // decelerating to zero velocity
+  outQuad: function(t) { return t*(2-t); },
+  // acceleration until halfway, then deceleration
+  inOutQuad: function(t) { return t<.5 ? 2*t*t : -1+(4-2*t)*t; },
+
+  // accelerating from zero velocity
+  inCubic: function(t) { return t*t*t; },
+  // decelerating to zero velocity
+  outCubic: function(t) { return (--t)*t*t+1; },
+  // acceleration until halfway, then deceleration
+  inOutCubic: function(t) { return t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1; },
+
+  // accelerating from zero velocity
+  inQuart: function(t) { return t*t*t*t; },
+  // decelerating to zero velocity
+  outQuart: function(t) { return 1-(--t)*t*t*t; },
+  // acceleration until halfway, then deceleration
+  inOutQuart: function(t) { return t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t; },
+
+  // accelerating from zero velocity
+  inQuint: function(t) { return t*t*t*t*t; },
+  // decelerating to zero velocity
+  outQuint: function(t) { return 1+(--t)*t*t*t*t; },
+  // acceleration until halfway, then deceleration
+  inOutQuint: function(t) { return t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t; },
+
+  // accelerating from zero velocity
+  inSine: function(t) { return 1-Math.cos(t*(Math.PI/2)); },
+  // decelerating to zero velocity
+  outSine: function(t) { return Math.sin(t*(Math.PI/2)); },
+  // accelerating until halfway, then decelerating
+  inOutSine: function(t) { return .5-.5*Math.cos(Math.PI*t); },
+
+  // accelerating from zero velocity
+  inExpo: function(t) { return Math.pow(2, 10*(t-1)); },
+  // decelerating to zero velocity
+  outExpo: function(t) { return 1-Math.pow(2, -10*t); },
+  // accelerating until halfway, then decelerating
+  inOutExpo: function(t) { t=t*2-1; return t<0 ? .5*Math.pow(2, 10*t) : 1-.5*Math.pow(2, -10*t); },
+
+  // accelerating from zero velocity
+  inCirc: function(t) { return 1-Math.sqrt(1-t*t); },
+  // decelerating to zero velocity
+  outCirc: function(t) { t--; return Math.sqrt(1-t*t); },
+  // acceleration until halfway, then deceleration
+  inOutCirc: function(t) { t*=2; return t<1 ? .5-.5*Math.sqrt(1-t*t) : .5+.5*Math.sqrt(1-(t-=2)*t); }
+};
+// jscs:enable
+/* jshint ignore:end */
+// @formatter:off
+
+/**
  * Merge the enumerable attributes of two objects.
  * Modified to replace arrays instead of merge.
  * @copyright Nicholas Fisher <nfisher110@gmail.com>"
@@ -210,6 +360,9 @@ PSVUtils.deepmerge = function(target, src) {
     });
   }
   else {
+    if (target && Array.isArray(target)) {
+      target = undefined;
+    }
     if (target && typeof target === 'object') {
       Object.keys(target).forEach(function(key) {
         dst[key] = target[key];

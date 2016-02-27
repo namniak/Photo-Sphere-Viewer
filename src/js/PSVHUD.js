@@ -246,20 +246,10 @@ PSVHUD.prototype._updateNormalMarker = function(marker) {
   marker.anchor = PSVUtils.parsePosition(marker.anchor);
 
   // convert texture coordinates to spherical coordinates
-  if (marker.hasOwnProperty('x') && marker.hasOwnProperty('y')) {
-    var relativeX = marker.x / this.psv.prop.size.image_width * PhotoSphereViewer.TwoPI;
-    var relativeY = marker.y / this.psv.prop.size.image_height * PhotoSphereViewer.PI;
-
-    marker.longitude = relativeX >= PhotoSphereViewer.PI ? relativeX - PhotoSphereViewer.PI : relativeX + PhotoSphereViewer.PI;
-    marker.latitude = PhotoSphereViewer.HalfPI - relativeY;
-  }
+  this.psv._cleanPosition(marker);
 
   // compute x/y/z position
-  marker.position3D = new THREE.Vector3(
-    -Math.cos(marker.latitude) * Math.sin(marker.longitude),
-    Math.sin(marker.latitude),
-    Math.cos(marker.latitude) * Math.cos(marker.longitude)
-  );
+  marker.position3D = this.psv.sphericalCoordsToVector3(marker.longitude, marker.latitude);
 };
 
 /**
@@ -280,32 +270,31 @@ PSVHUD.prototype._updatePolygonMarker = function(marker) {
     marker.$el.setAttribute('fill', 'rgba(0,0,0,0.5)');
   }
 
+  // fold arrays: [1,2,3,4] => [[1,2],[3,4]]
+  [marker.polygon_rad, marker.polygon_px].forEach(function(polygon) {
+    if (polygon && typeof polygon[0] != 'object') {
+      for (var i = 0; i < polygon.length; i++) {
+        polygon.splice(i, 2, [polygon[i], polygon[i + 1]]);
+      }
+    }
+  });
+
   // convert texture coordinates to spherical coordinates
   if (marker.polygon_px) {
-    marker.polygon_rad = marker.polygon_px.map(function(pos, i) {
-      if (i % 2 === 0) {
-        var relativeX = pos / this.psv.prop.size.image_width * PhotoSphereViewer.TwoPI;
-        return relativeX >= PhotoSphereViewer.PI ? relativeX - PhotoSphereViewer.PI : relativeX + PhotoSphereViewer.PI;
-      }
-      else {
-        var relativeY = pos / this.psv.prop.size.image_height * PhotoSphereViewer.PI;
-        return PhotoSphereViewer.HalfPI - relativeY;
-      }
+    marker.polygon_rad = marker.polygon_px.map(function(coord) {
+      var sphericalCoords = this.psv.textureCoordsToSphericalCoords(coord[0], coord[1]);
+      return [sphericalCoords.longitude, sphericalCoords.latitude];
     }, this);
   }
 
   // TODO : compute the center of the polygon
-  marker.longitude = marker.polygon_rad[0];
-  marker.latitude = marker.polygon_rad[1];
+  marker.longitude = marker.polygon_rad[0][0];
+  marker.latitude = marker.polygon_rad[0][1];
 
-  marker.positions3D = [];
-  for (var i = 0, l = marker.polygon_rad.length; i < l; i += 2) {
-    marker.positions3D.push(new THREE.Vector3(
-      -Math.cos(marker.polygon_rad[i + 1]) * Math.sin(marker.polygon_rad[i]),
-      Math.sin(marker.polygon_rad[i + 1]),
-      Math.cos(marker.polygon_rad[i + 1]) * Math.cos(marker.polygon_rad[i])
-    ));
-  }
+  // compute x/y/z positions
+  marker.positions3D = marker.polygon_rad.map(function(coord) {
+    return this.psv.sphericalCoordsToVector3(coord[0], coord[1]);
+  }, this);
 };
 
 /**
@@ -334,12 +323,12 @@ PSVHUD.prototype.removeMarker = function(marker, render) {
 /**
  * Go to a specific marker
  * @param marker (Mixed)
- * @param duration (Mixed)
+ * @param duration (Mixed, optional)
  * @return (void)
  */
 PSVHUD.prototype.gotoMarker = function(marker, duration) {
   marker = this.getMarker(marker);
-  this.psv.animate(marker.longitude, marker.latitude, duration);
+  this.psv.animate(marker, duration);
 };
 
 /**

@@ -28,7 +28,17 @@
 
 <div id="photosphere"></div>
 
-<script src="../bower_components/three.js/three.min.js"></script>
+<script src="../bower_components/three.js/three.js"></script>
+<script src="../bower_components/D.js/lib/D.min.js"></script>
+<script src="../bower_components/requestanimationframe/index.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/renderers/CanvasRenderer.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/renderers/Projector.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/postprocessing/RenderPass.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/postprocessing/MaskPass.js"></script>
+<script src="../bower_components/threejs-examples/examples/js/shaders/CopyShader.js"></script>
+<script src="../src/js/GodraysShader.js"></script>
 <script src="../dist/photo-sphere-viewer.js"></script>
 
 <script type="text/template" id="pin-content">
@@ -81,12 +91,27 @@
       'autorotate', 'zoom', 'download', 'markers',
       'spacer-1',
       {
-        title: 'Custom action',
+        title: 'Change image',
         className: 'custom-button',
         content: '★',
-        onClick: function() {
-          alert('You clicked the custom action');
-        }
+        onClick: (function() {
+          var i = false;
+
+          return function() {
+            i = !i;
+            Object.keys(PSV.hud.markers).forEach(function(marker) {
+              PSV.removeMarker(marker);
+            });
+
+            PSV.setPanorama(i ? 'Bryce-Canyon-By-Jess-Beauchemin.jpg' : 'Bryce-Canyon-National-Park-Mark-Doliner.jpg', {
+              longitude: i ? 3.7153696451829257 : 3.8484510006474992,
+              latitude: i ? 0.57417649320975916 : -0.24434609527920628
+            }, true)
+              .then(function() {
+                PSV.setCaption(i ? 'Bryce Canyon National Park <b>&copy; Jess Beauchemin</b>' : 'Bryce Canyon National Park <b>&copy; Mark Doliner</b>');
+              });
+          }
+        }())
       },
       'caption',
       'fullscreen'
@@ -97,7 +122,11 @@
     anim_speed: '-2rpm',
     default_fov: 70,
     time_anim: false,
-    visit: [[3.861, 0.034], [5.157,0.340], [0.479,0.654], [1.893,0.270]],
+    transition: {
+      duration: 1000,
+      loader: true,
+      blur: true
+    },
     markers: (function(){
       var a = [];
       for (var i=0; i<Math.PI*2; i+=Math.PI/4) {
