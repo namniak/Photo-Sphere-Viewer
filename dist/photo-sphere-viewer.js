@@ -5,15 +5,12 @@
  * Licensed under MIT (http://opensource.org/licenses/MIT)
  */
 
-window.THREE = require('three');
-
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define(['three'], factory);
   }
   else {
-    THREE = THREE || window.THREE
-    root.PhotoSphereViewer = factory(THREE);
+    root.PhotoSphereViewer = factory(require('three'));
   }
 }(this, function(THREE) {
 "use strict";
@@ -437,8 +434,8 @@ PhotoSphereViewer.prototype._createScene = function(img) {
   this.scene.add(this.camera);
 
   var texture = new THREE.Texture(img);
-  texture.minFilter = THREE.LinearFilter
-  texture.generateMipmaps = false
+  texture.minFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
   texture.needsUpdate = true;
 
   // The middle of the panorama is placed at longitude=0
