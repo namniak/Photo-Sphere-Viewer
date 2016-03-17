@@ -352,7 +352,6 @@ PhotoSphereViewer.prototype._loadTexture = function(pano_data, in_cache) {
     self.loader.setProgress(100);
 
     // Default XMP data
-    if (!pano_data) {
       pano_data = {
         full_width: img.width,
         full_height: img.height,
@@ -361,7 +360,6 @@ PhotoSphereViewer.prototype._loadTexture = function(pano_data, in_cache) {
         cropped_x: 0,
         cropped_y: 0
       };
-    }
 
     // Size limit for mobile compatibility
     var max_width = 4096;
