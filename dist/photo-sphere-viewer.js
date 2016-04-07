@@ -10,7 +10,7 @@
     define(['three'], factory);
   }
   else {
-    root.PhotoSphereViewer = factory(require('three'));
+    root.PhotoSphereViewer = factory(window.THREE);
   }
 }(this, function(THREE) {
 "use strict";
