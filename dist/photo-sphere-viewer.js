@@ -422,7 +422,7 @@ PhotoSphereViewer.prototype._createScene = function(img) {
   this.raycaster = new THREE.Raycaster();
 
   // Renderer depends on whether WebGL is supported or not
-  this.renderer = PSVUtils.isWebGLSupported() ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
+  this.renderer = PSVUtils.isWebGLSupported() ? new THREE.WebGLRenderer({preserveDrawingBuffer: true}) : new THREE.CanvasRenderer();
   this.renderer.setSize(this.prop.size.width, this.prop.size.height);
 
   this.camera = new THREE.PerspectiveCamera(this.config.default_fov, this.prop.size.ratio, 1, 300);
